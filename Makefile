@@ -7,12 +7,14 @@ endif
 TOPDIR ?= $(CURDIR)
 include $(DEVKITPRO)/libnx/switch_rules
 
+APP_TITLEID	:= 	410000000000FF15
 TARGET		:=	http-botbase
 BUILD		:=	build
 SOURCES		:=	source include/fmt/source
 DATA		:=	data
 INCLUDES	:=	include include/fmt/include
 EXEFS_SRC	:=	exefs_src
+OUTDIR		:=	out
 
 ARCH	:=	-march=armv8-a -mtune=cortex-a57 -mtp=soft -fPIE
 
@@ -84,10 +86,15 @@ all: $(BUILD)
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	@rm -fr $(OUTDIR)
+	@mkdir -p $(OUTDIR)/$(APP_TITLEID)/flags
+	@cp $(TARGET).nsp $(OUTDIR)/$(APP_TITLEID)/exefs.nsp
+	@cp toolbox.json $(OUTDIR)/$(APP_TITLEID)/toolbox.json
+	@touch $(OUTDIR)/$(APP_TITLEID)/flags/boot2.flag
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).nsp $(TARGET).npdm $(TARGET).nso $(TARGET).elf $(TARGET).nro
+	@rm -fr $(BUILD) $(OUTDIR) $(TARGET).nsp $(TARGET).npdm $(TARGET).nso $(TARGET).elf $(TARGET).nro
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)

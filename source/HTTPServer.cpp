@@ -7,6 +7,7 @@
 #include <iomanip>
 
 #include "HTTPServer.hpp"
+#include "json.hpp"
 #include "commands.hpp"
 #include "util.hpp"
 #include "debugger.hpp"
@@ -14,11 +15,16 @@
 
 using namespace httplib;
 using namespace std;
+using json = nlohmann::json;
 
 string makeResponse(bool isError, const string& message, const optional<string> payload = nullopt) {
-	return "{\"status\":\"" + string((isError ? "error" : "okay")) + 	\
-			"\",\"message\":\"" + string(message) + 					\
-			"\", \"payload\":\"" + payload.value_or("null") + "\"}";
+	json response = {
+		{"status", isError ? "error" : "okay"},
+		{"message", message},
+		{"payload", payload.value_or(nullptr)}
+	};
+
+	return response.dump();
 }
 
 HTTPServer::HTTPServer() {
@@ -32,7 +38,7 @@ HTTPServer::HTTPServer() {
 	#if APPLET
 	std::cout << "All routes were registered, debugger started." << std::endl;
 	#endif
-	 
+
 	#if NXLINK
 	DEBUGMSG("[SERVER] All routes were registered, debugger started.\n");
 	#endif
@@ -92,7 +98,7 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 	Result rc = dmntchtGetCheatProcessMetadata(&_meta);
 
 	if (R_FAILED(rc))
-		return res.set_content(makeResponse(true, "Could not fetch process metadata, error: " + intToHexString(rc)), "application/json");
+		return res.set_content(makeResponse(true, "Could not fetch process metadata, error: " + iths(rc)), "application/json");
 
 	u8 buffer[size];
 	rc = this->debugger->readMemory(buffer, size, offset);
@@ -118,14 +124,20 @@ void HTTPServer::get_mainNsoBase(const Request& req, Response& res) {
 	Result rc = dmntchtInitialize();
 
 	if (R_FAILED(rc))
-		return res.set_content(makeResponse(true, "Could not initialize dmntcht, error: " + intToHexString(rc)), "application/json");
+		return res.set_content(makeResponse(true, "Could not initialize dmntcht, error: " + iths(rc)), "application/json");
+
+	rc = dmntchtForceOpenCheatProcess();
+
+	if (R_FAILED(rc))
+		return res.set_content(makeResponse(true, "Could not force open cheat process (dmnt:cht, forceOpenCheatProcess): " + iths(rc)), "application/json");
 
 	DmntCheatProcessMetadata _meta;
 	rc = dmntchtGetCheatProcessMetadata(&_meta);
 	dmntchtExit();
 
 	if (R_FAILED(rc))
-		return res.set_content(makeResponse(true, "Could not fetch process metadata, error: " + intToHexString(rc)) + ", meta: " + intToHexString(_meta.main_nso_extents.base), "application/json");
-
-	res.set_content(makeResponse(false, "OK", to_string(_meta.main_nso_extents.base)), "application/json");
+		return res.set_content(makeResponse(true, "Could not fetch process metadata, error: " + iths(rc)) + ", meta: " + iths(_meta.main_nso_extents.base), "application/json");
+	
+	json payload = {{"base", iths(_meta.main_nso_extents.base)}, {"size", _meta.main_nso_extents.size}};
+	res.set_content(makeResponse(false, "OK", payload.dump()), "application/json");
 }

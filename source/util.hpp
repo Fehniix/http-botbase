@@ -5,7 +5,7 @@
 /**
  * @brief Whether the build's target is APPLET or SYS-MODULE.
 */
-#define APPLET 1
+#define APPLET 0
 
 /**
  * @brief Whether nxlink should be enabled or not.
@@ -17,6 +17,7 @@
  */
 #define VDEBUGMSG(msg, ...) 	(fprintf(stderr, msg, __VA_ARGS__))
 #define DEBUGMSG(msg) 			(fprintf(stderr, msg))
+#define RETURN_IF_FAIL(rc)		if (R_FAILED(rc)) return rc;
 
 #define MAX_LINE_LENGTH 344 * 32 * 2
 
@@ -27,7 +28,10 @@ int setupServerSocket();
 u64 parseStringToInt(const char* arg);
 s64 parseStringToSignedLong(const char* arg);
 u8* parseStringToByteBuffer(const char* arg, u64* size);
-std::string intToHexString(u64 number);
+/**
+ * @brief "Int To Hex String", converts an integer to a hexadecimal string.
+ */
+std::string iths(u64 number);
 HidNpadButton parseStringToButton(const char* arg);
 Result capsscCaptureForDebug(void *buffer, size_t buffer_size, u64 *size); //big thanks to Behemoth from the Reswitched Discord!
 void flashLed(void);

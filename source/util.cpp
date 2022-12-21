@@ -211,10 +211,9 @@ HidNpadButton parseStringToButton(const char* arg)
     return HidNpadButton_A; //I guess lol
 }
 
-std::string intToHexString(u64 number) {
+std::string iths(u64 number) {
     std::stringstream ss;
-    ss << std::setfill('0') << std::uppercase << std::hex;
-    ss << std::setw(sizeof(u64)*2) << int(number);
+    ss << std::uppercase << std::hex << number;
     return ss.str();
 }
 

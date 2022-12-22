@@ -75,6 +75,17 @@ u64 parseStringToInt(const char* arg){
     return ret;
 }
 
+u64 parseStringToInt(const std::string* str) {
+    return parseStringToInt(str->c_str());
+}
+
+u64 parseStringToInt(std::string str) {
+    std::string* _str = new std::string(str);
+    u64 ret = parseStringToInt(_str);
+    delete _str;
+    return ret;
+}
+
 s64 parseStringToSignedLong(const char* arg){
     if(strlen(arg) > 2){
         if(arg[1] == 'x' || arg[2] == 'x'){
@@ -211,8 +222,12 @@ HidNpadButton parseStringToButton(const char* arg)
     return HidNpadButton_A; //I guess lol
 }
 
-std::string iths(u64 number) {
+std::string iths(u64 number, bool showBase) {
     std::stringstream ss;
+    
+    if (showBase)
+        ss << std::showbase;
+
     ss << std::uppercase << std::hex << number;
     return ss.str();
 }

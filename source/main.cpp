@@ -149,7 +149,8 @@ int main(int argc, char* argv[]) {
     
     // Main loop
     while (appletMainLoop()) {
-        if (!server->started)
+        if (!server->started() && !server->isStarting())
+            // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
             // This is NON-blocking! The server is started on a separate thread. 
             server->start();
 

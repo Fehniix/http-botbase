@@ -26,12 +26,19 @@ extern bool debugResultCodes;
 
 int setupServerSocket();
 u64 parseStringToInt(const char* arg);
+/**
+ * Please bear in mind that this overload creates an `std::string` pointer, copies the - already copied arg! - given `str` object and calls the `const std::string*` overload! For long strings, the overhead could be massive.
+ */
+u64 parseStringToInt(std::string str);
+u64 parseStringToInt(const std::string* str);
 s64 parseStringToSignedLong(const char* arg);
 u8* parseStringToByteBuffer(const char* arg, u64* size);
+
 /**
  * @brief "Int To Hex String", converts an integer to a hexadecimal string.
  */
-std::string iths(u64 number);
+std::string iths(u64 number, bool showBase = false);
+
 HidNpadButton parseStringToButton(const char* arg);
 Result capsscCaptureForDebug(void *buffer, size_t buffer_size, u64 *size); //big thanks to Behemoth from the Reswitched Discord!
 void flashLed(void);

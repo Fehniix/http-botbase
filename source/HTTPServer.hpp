@@ -11,8 +11,8 @@ class HTTPServer {
 
 		void start();
 		void stop();
-
-		bool started;
+		bool started();
+		bool isStarting();
 	
 	private:
 		Server serverInstance;
@@ -23,9 +23,11 @@ class HTTPServer {
 		*/
 		Thread serverThread;
 
+		static bool starting;
 		static void serverThreadFunction(void* arg);
 
 		void get_ping(const Request&, Response& res);
 		void get_peek(const Request& req, Response& res);
 		void get_mainNsoBase(const Request& req, Response& res);
+		void get_heapBase(const Request& req, Response& res);
 };

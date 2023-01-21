@@ -10,6 +10,7 @@ using namespace std;
 
 string erroredModuleName;
 Result initializationErrorCode = 0;
+bool debugResultCodes = false;
 
 #if !APPLET
 #define INNER_HEAP_SIZE 0x00C00000
@@ -145,14 +146,17 @@ int main(int argc, char* argv[]) {
     cout << "Errored: " << ((initializationErrorCode != 0) ? erroredModuleName : "false") << ", code: " << initializationErrorCode << endl;
     #endif
 
+    bool running = false;
 	HTTPServer *server = new HTTPServer();
     
     // Main loop
     while (appletMainLoop()) {
-        if (!server->started() && !server->isStarting())
+        if (!running && !server->isStarting()) {
             // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
             // This is NON-blocking! The server is started on a separate thread. 
             server->start();
+            running = true;
+        }
 
         #if APPLET
         // Scan the gamepad. This should be done once for each frame

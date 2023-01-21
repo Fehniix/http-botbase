@@ -307,7 +307,7 @@ void reverseArray(u8* arr, int start, int end)
     }   
 } 
 
-u64 followMainPointer(s64* jumps, size_t count, Result &ldrDmntResult) 
+u64 followMainPointer(const s64 *jumps, size_t count, Result &ldrDmntResult) 
 {
 	u64 offset;
     u64 size = sizeof offset;

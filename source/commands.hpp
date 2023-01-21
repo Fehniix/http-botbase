@@ -57,7 +57,7 @@ void press(HidNpadButton btn);
 void release(HidNpadButton btn);
 void setStickState(int side, int dxVal, int dyVal);
 void reverseArray(u8* arr, int start, int end);
-u64 followMainPointer(s64* jumps, size_t count, Result &ldrDmntResult);
+u64 followMainPointer(const s64* jumps, size_t count, Result &ldrDmntResult);
 void touch(HidTouchState* state, u64 sequentialCount, u64 holdTime, bool hold, u8* token);
 void key(HiddbgKeyboardAutoPilotState* states, u64 sequentialCount);
 void clickSequence(char* seq, u8* token);

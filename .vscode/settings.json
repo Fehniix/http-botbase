@@ -90,6 +90,10 @@
 		"source_location": "cpp",
 		"stop_token": "cpp",
 		"cinttypes": "cpp",
-		"dmntcht.h": "c"
+		"dmntcht.h": "c",
+		"forward_list": "cpp",
+		"ranges": "cpp",
+		"span": "cpp",
+		"valarray": "cpp"
 	}
 }

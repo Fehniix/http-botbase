@@ -1,6 +1,7 @@
 #include <switch.h>
 #include <httplib.hpp>
 #include "debugger.hpp"
+#include "GameManager.hpp"
 
 using namespace httplib;
 
@@ -17,6 +18,7 @@ class HTTPServer {
 	private:
 		Server serverInstance;
 		Debugger* debugger;
+		GameManager* gm;
 		
 		/**
 	 	* Represents the thread that contains the listening server. 
@@ -30,4 +32,7 @@ class HTTPServer {
 		void get_peek(const Request& req, Response& res);
 		void get_mainNsoBase(const Request& req, Response& res);
 		void get_heapBase(const Request& req, Response& res);
+		void get_meta(const Request &req, Response &res);
+
+		void get_dmntRunning(const Request &req, Response &res);
 };

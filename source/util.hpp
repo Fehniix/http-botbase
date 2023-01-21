@@ -1,6 +1,7 @@
 #include <switch.h>
 #include <stdio.h>
 #include <iostream>
+#include <iomanip>
 
 /**
  * @brief Whether the build's target is APPLET or SYS-MODULE.
@@ -38,6 +39,21 @@ u8* parseStringToByteBuffer(const char* arg, u64* size);
  * @brief "Int To Hex String", converts an integer to a hexadecimal string.
  */
 std::string iths(u64 number, bool showBase = false);
+
+/**
+ * @brief Converts the supplied number array to a hexadecimal string.
+ */
+template<typename T>
+std::string* bufferToHexString(T* buffer, size_t bufferSize) {
+	std::stringstream ss;
+	ss << std::setfill('0') << std::uppercase << std::hex;
+
+	for (u64 i = 0; i < bufferSize; i++)
+		ss << std::setw(2) << buffer[i];
+
+    std::string* str = new std::string(ss.str());
+    return str;
+};
 
 HidNpadButton parseStringToButton(const char* arg);
 Result capsscCaptureForDebug(void *buffer, size_t buffer_size, u64 *size); //big thanks to Behemoth from the Reswitched Discord!

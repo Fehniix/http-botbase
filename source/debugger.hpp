@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
 #include <switch.h>
 #include "dmntcht.h"
 
@@ -23,20 +24,25 @@ class Debugger {
 		Result refreshMetaData(std::string &error);
 		u64 getRunningApplicationTID();
 		u64 getRunningApplicationPID();
-
-		u64 peekMemory(u64 address);
-		Result pokeMemory(size_t varSize, u64 address, u64 value);
-		MemoryInfo queryMemory(u64 address);
+		
+		MemoryInfo queryMemory(u64 address, Result &result);
 		Result readMemory(void *buffer, size_t bufferSize, u64 address);
 		Result writeMemory(void *buffer, size_t bufferSize, u64 address);
+		u64 pointerAll(const s64 jumps[], size_t jumpsLength, Result &ldrDmntResult);
 
 		const DmntMemoryRegionExtents& getHeap() const;
 		const DmntMemoryRegionExtents& getMain() const;
-		u64 getPID();
-		u64 getTitleID();
+		inline u64 getPID();
+		inline u64 getTitleID();
 		const u8* getNsoBuildId() const;
+		inline u64 getHeapEnd() const;
+		inline u64 getMainEnd() const;
+		const DmntCheatProcessMetadata& getMeta() const;
 
 	private:
 		u64 m_tid = 0, m_pid = 0;
 		DmntCheatProcessMetadata meta;
+		
+		// Keeping track of these because, apparently, it may be the case that heapStart + size != heapEnd, same for main. Odd!
+		u64 heapEnd, mainEnd;
 };

@@ -14,7 +14,4 @@ class GameManager {
 
 	private:
 		Debugger *debugger;
-
-		Result dmntchtAttach(std::string &error);
-		Result dmntchtDetach();
 };

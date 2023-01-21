@@ -16,9 +16,11 @@ class Debugger {
 
 		Result initialize(std::string &error);
 		Result attachToProcess();
+		void detach();
+		Result dmntchtAttach(std::string &error);
+		Result dmntchtDetach();
 		Result pause();
 		Result resume();
-		void detach();
 		bool dmntRunning();
 
 		Result refreshMetaData(std::string &error);

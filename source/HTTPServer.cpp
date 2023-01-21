@@ -175,7 +175,7 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 
 	payload = {
 		{"result", "ss.str()"},
-		{"debug", "Reading region #" + std::to_string(region) + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.value().base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + error},
+		{"debug", "Reading region #" + std::to_string(region) + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.value().base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + err},
 		{"fancy_game_manager", test ? (*bufferToHexString(b, size)) : "nope, failed."}
 	};
 

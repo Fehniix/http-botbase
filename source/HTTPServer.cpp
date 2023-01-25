@@ -148,8 +148,8 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 	}
 
 	unsigned short b[size];
-	std::string err;
-	bool test = this->gm->peek(b, size, extents.value().base, err);
+	std::string __err;
+	bool test = this->gm->peek(b, size, extents.value().base + offset, __err);
 
 	// unsigned short buffer[size];
 	
@@ -175,7 +175,7 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 
 	payload = {
 		{"result", "ss.str()"},
-		{"debug", "Reading region #" + std::to_string(region) + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.value().base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + err},
+		{"debug", "Reading region #" + std::to_string(region) + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.value().base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + __err},
 		{"fancy_game_manager", test ? (*bufferToHexString(b, size)) : "nope, failed."}
 	};
 

@@ -23,6 +23,15 @@ bool GameManager::peek(void *buffer, size_t bufferSize, u64 address, std::string
 		return false;
 	}
 
+	if (!this->debugger->refreshed) {
+		rc = this->debugger->refreshMetaData(error);
+
+		if (R_FAILED(rc)) {
+			error = "There was an error while refreshing metadata. RC: " + iths(rc);
+			return false;
+		}
+	}
+
 	rc = this->debugger->readMemory(buffer, bufferSize, address);
 
 	if (R_FAILED(rc)) {

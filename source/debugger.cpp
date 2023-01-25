@@ -164,6 +164,8 @@ Result Debugger::refreshMetaData(std::string &error) {
 	dmntchtForceCloseCheatProcess();
 	dmntchtExit();
 
+	this->refreshed = true;
+
 	return rc;
 }
 

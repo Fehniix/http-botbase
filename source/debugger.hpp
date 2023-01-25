@@ -10,6 +10,7 @@ class Debugger {
 		bool m_dmnt = true;
 		Result m_rc = 0;
 		Handle m_debugHandle = 0; // no action to be taken to attach
+		bool refreshed = false;
 
 		Debugger();
 		~Debugger();

@@ -146,16 +146,14 @@ int main(int argc, char* argv[]) {
     cout << "Errored: " << ((initializationErrorCode != 0) ? erroredModuleName : "false") << ", code: " << initializationErrorCode << endl;
     #endif
 
-    bool running = false;
 	HTTPServer *server = new HTTPServer();
     
     // Main loop
     while (appletMainLoop()) {
-        if (!running && !server->isStarting()) {
+        if (!server->started() && !server->isStarting()) {
             // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
             // This is NON-blocking! The server is started on a separate thread. 
             server->start();
-            running = true;
         }
 
         #if APPLET

@@ -13,7 +13,7 @@ This project is currently under active development, expect bugs and crashes.
 
 I would like to thank each and every single one who has helped me learn and develop this little project: berichan and all the members of their community on Discord, m4xw, SciresM, Behemoth, piepie62 & Anubis.
 
-The following repositories were also extremely useful:
+The following repositories were also extremely useful during development:
 
 - [olliz0r@sys-botbase](https://github.com/olliz0r/sys-botbase)
 - [tomvita@EdiZon-SE](https://github.com/tomvita/EdiZon-SE)

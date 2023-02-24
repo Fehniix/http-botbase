@@ -147,14 +147,22 @@ int main(int argc, char* argv[]) {
     #endif
 
 	HTTPServer *server = new HTTPServer();
+    bool testCheck = false;
     
     // Main loop
     while (appletMainLoop()) {
-        if (!server->started() && !server->isStarting()) {
+        #if APPLET
+        if (!server->listening() && !server->isStarting() && !testCheck) {
             // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
             // This is NON-blocking! The server is started on a separate thread. 
-            server->start();
+            server->startAsync();
+            testCheck = true;
         }
+        #else
+        // If not in applet mode, and thus in "prod", start listening in blocking mode within the main loop:
+        // this guarantees that when the NS goes in sleep mode, the server re-opens a listening socket.
+        server->start();
+        #endif
 
         #if APPLET
         // Scan the gamepad. This should be done once for each frame
@@ -175,10 +183,11 @@ int main(int argc, char* argv[]) {
     }
 
 	#if APPLET
+    server->stopAsync();
     cout << "Exiting..." << endl;
     #endif
 
-	server->stop();
+    server->stop();
 
 	#if APPLET
     consoleUpdate(NULL);

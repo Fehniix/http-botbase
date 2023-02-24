@@ -12,7 +12,9 @@ class HTTPServer {
 
 		void start();
 		void stop();
-		bool started();
+		void startAsync();
+		void stopAsync();
+		bool listening();
 		bool isStarting();
 	
 	private:

@@ -53,8 +53,31 @@ HTTPServer::HTTPServer() {
 
 HTTPServer::~HTTPServer() {}
 
-std::string error;
 void HTTPServer::start() {
+	std::string error;
+
+	this->gm = new GameManager();
+	this->debugger = new Debugger();
+	this->debugger->initialize(error);
+
+	#if NXLINK
+	DEBUGMSG("[SERVER] HTTPServer started!\n");
+	#endif
+
+	flashLed();
+
+	this->serverThreadFunction((void*)&this->serverInstance);
+}
+
+void HTTPServer::stop() {
+	this->serverInstance.stop();
+
+	delete this->debugger;
+}
+
+void HTTPServer::startAsync() {
+	std::string error;
+
 	this->gm = new GameManager();
 	this->debugger = new Debugger();
 	this->debugger->initialize(error);
@@ -71,7 +94,7 @@ void HTTPServer::start() {
 	threadStart(&this->serverThread);
 }
 
-void HTTPServer::stop() {
+void HTTPServer::stopAsync() {
 	this->serverInstance.stop();
 
 	delete this->debugger;
@@ -87,7 +110,7 @@ void HTTPServer::serverThreadFunction(void* arg) {
 	serverRef->listen("0.0.0.0", 9001);
 }
 
-bool HTTPServer::started() {
+bool HTTPServer::listening() {
 	return this->serverInstance.is_running();
 }
 

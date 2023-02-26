@@ -56,7 +56,7 @@ HTTPServer::~HTTPServer() {}
 void HTTPServer::start() {
 	std::string error;
 
-	this->gm = new GameManager();
+	this->gameManager = new GameManager();
 	this->debugger = new Debugger();
 	this->debugger->initialize(error);
 
@@ -78,7 +78,7 @@ void HTTPServer::stop() {
 void HTTPServer::startAsync() {
 	std::string error;
 
-	this->gm = new GameManager();
+	this->gameManager = new GameManager();
 	this->debugger = new Debugger();
 	this->debugger->initialize(error);
 
@@ -134,7 +134,8 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 
 	u64 offset = parseStringToInt(req.get_param_value("offset"));
 	u64 size = parseStringToInt(req.get_param_value("size"));
-	int region = stoi(req.get_param_value("region"));
+	std::string region = req.get_param_value("region");
+	for (auto &c: region) c = tolower(c); // Convert region to lower-case.
 
 	std::string refreshError;
 	Result rc = this->debugger->refreshMetaData(refreshError);
@@ -144,65 +145,39 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 
 	json payload = nullptr;
 
-	// switch(region) {
-	// 	case 0: // HEAP
-	// 		payload = peek(this->debugger->getMeta().heap_extents.base + offset, size);
-	// 		break;
-	// 	case 1: // MAIN
-	// 		payload = peek(this->debugger->getMeta().main_nso_extents.base + offset, size);
-	// 		break;
-	// 	case 2: // ABSOLUTE
-	// 		payload = peek(offset, size);
-	// 		break;
-	// }
-
-	// return res.set_content(makeResponse(false, "OK", make_optional(payload)), "application/json");
-
-	optional<DmntMemoryRegionExtents> extents;
-	switch(region) {
-		case 0: // HEAP
-			extents = this->debugger->getMeta().heap_extents;
-			break;
-		case 1: // MAIN
-			extents = this->debugger->getMeta().main_nso_extents;
-			break;
-		case 2: // ABSOLUTE
-			break;
-	}
-
-	unsigned short b[size];
-	std::string __err;
-	bool test = this->gm->peek(b, size, extents.value().base + offset, __err);
-
-	// unsigned short buffer[size];
+	DmntMemoryRegionExtents extents = DmntMemoryRegionExtents();
+	extents.base = 0;
+	extents.size = 0;
 	
-	// std::string error;
-	// rc = dmntchtInitialize();
-	// if (R_FAILED(rc)) {
-	// 	error = "Could not initialize dmntcht, error: " + iths(rc);
-	// }
+	if (region == "heap")
+		extents = this->debugger->getMeta().heap_extents;
+	if (region == "main")
+		extents = this->debugger->getMeta().main_nso_extents;
 
-	// rc = dmntchtForceOpenCheatProcess();
-	// if (R_FAILED(rc)) {
-	// 	error = "Could not force open cheat process (dmnt:cht, forceOpenCheatProcess): " + iths(rc);
-	// 	dmntchtExit();
-	// }
-
-	// rc = this->debugger->readMemory(buffer, size, (extents.has_value() ? extents.value().base : 0) + offset);
-
-	// std::stringstream ss;
-	// ss << std::setfill('0') << std::uppercase << std::hex;
-
-	// for (u64 i = 0; i < size; i++)
-	// 	ss << std::setw(2) << buffer[i];
+	unsigned short buffer[size];
+	std::string __err;
+	bool test = this->gameManager->peek(buffer, size, extents.base + offset, __err);
 
 	payload = {
 		{"result", "ss.str()"},
-		{"debug", "Reading region #" + std::to_string(region) + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.value().base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + __err},
-		{"fancy_game_manager", test ? (*bufferToHexString(b, size)) : "nope, failed."}
+		{"debug", "Reading region #" + region + ", at offset: " + iths(offset) + ", size: " + iths(size) + ". Current extent base: " + std::to_string(extents.base) + ", debugger->readMemory RC: " + std::to_string(rc) + ", dmntError: " + __err},
+		{"fancy_game_manager", test ? (*bufferToHexString(buffer, size)) : "nope, failed."}
 	};
 
 	res.set_content(makeResponse(false, "OK", make_optional(payload)), "application/json");
+}
+
+void HTTPServer::get_poke(const Request &req, Response &res) {
+	if (!req.has_param("offset"))
+		return res.set_content(makeResponse(true, "`offset` param cannot be undefined."), "application/json");
+
+	if (!req.has_param("region"))
+		return res.set_content(makeResponse(true, "`region` param cannot be undefined."), "application/json");
+		
+	if (!req.has_param("data"))
+		return res.set_content(makeResponse(true, "`data` param cannot be undefined."), "application/json");
+
+	
 }
 
 void HTTPServer::get_mainNsoBase(const Request &req, Response &res) {

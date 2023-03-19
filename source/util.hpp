@@ -4,21 +4,12 @@
 #include <iomanip>
 
 /**
- * @brief Whether the build's target is APPLET or SYS-MODULE.
-*/
-#define APPLET 0
-
-/**
- * @brief Whether nxlink should be enabled or not.
-*/
-#define NXLINK 1
-
-/**
  * @brief Sends a message with variadic parameters to stderr, likely to be caught by nxlink. Must be '\\n'-terminated, or `fflush(stderr)` right after calling this.
  */
 #define VDEBUGMSG(msg, ...) 	(fprintf(stderr, msg, __VA_ARGS__))
 #define DEBUGMSG(msg) 			(fprintf(stderr, msg))
 #define RETURN_IF_FAIL(rc)		if (R_FAILED(rc)) return rc;
+#define RINFO(msg)				RemoteLogging::instance()->info(msg)
 
 #define MAX_LINE_LENGTH 344 * 32 * 2
 

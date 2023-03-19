@@ -38,6 +38,7 @@ HTTPServer::HTTPServer() {
 
 	this->serverInstance.Get("/ping", [this](const Request& req, Response& res) { this->get_ping(req, res); });
 	this->serverInstance.Get("/peek", [this](const Request& req, Response& res) { this->get_peek(req, res); });
+	this->serverInstance.Get("/poke", [this](const Request& req, Response& res) { this->get_poke(req, res); });
 	this->serverInstance.Get("/mainNsoBase", [this](const Request& req, Response& res) { this->get_mainNsoBase(req, res); });
 	this->serverInstance.Get("/heapBase", [this](const Request& req, Response& res) { this->get_heapBase(req, res); });
 	this->serverInstance.Get("/meta", [this](const Request& req, Response& res) { this->get_meta(req, res); });
@@ -66,7 +67,8 @@ void HTTPServer::start() {
 
 	flashLed();
 
-	this->serverThreadFunction((void*)&this->serverInstance);
+	HTTPServer::starting = false;
+	this->serverInstance.listen("0.0.0.0", 9001);
 }
 
 void HTTPServer::stop() {
@@ -148,7 +150,7 @@ void HTTPServer::get_peek(const Request& req, Response &res) {
 	DmntMemoryRegionExtents extents = DmntMemoryRegionExtents();
 	extents.base = 0;
 	extents.size = 0;
-	
+
 	if (region == "heap")
 		extents = this->debugger->getMeta().heap_extents;
 	if (region == "main")

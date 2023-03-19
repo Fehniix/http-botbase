@@ -10,9 +10,9 @@ include $(DEVKITPRO)/libnx/switch_rules
 APP_TITLEID	:= 	410000000000FF15
 TARGET		:=	http-botbase
 BUILD		:=	build
-SOURCES		:=	source include/fmt/source
+SOURCES		:=	source source/fmt
 DATA		:=	data
-INCLUDES	:=	include include/fmt/include
+INCLUDES	:=	include
 EXEFS_SRC	:=	exefs_src
 OUTDIR		:=	out
 
@@ -98,12 +98,12 @@ clean:
 
 #---------------------------------------------------------------------------------
 run: $(BUILD)
-	@echo Starting nxlink
-	@nxlink $(OUTPUT).nro -a 192.168.1.104
+	@echo Starting nxlink -a 192.168.2.22
+	@nxlink $(OUTPUT).nro
 #---------------------------------------------------------------------------------
 rund: $(BUILD)
 	@echo Starting nxlink
-	@nxlink $(OUTPUT).nro -s -a 192.168.1.104
+	@nxlink $(OUTPUT).nro -s -a 192.168.2.22
 #---------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------

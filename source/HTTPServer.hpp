@@ -1,3 +1,5 @@
+#ifndef HTTPSERVER_H
+#define HTTPSERVER_H
 #include <switch.h>
 #include <httplib.hpp>
 #include "debugger.hpp"
@@ -39,3 +41,4 @@ class HTTPServer {
 
 		void get_dmntRunning(const Request &req, Response &res);
 };
+#endif

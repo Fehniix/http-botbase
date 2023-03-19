@@ -1,10 +1,25 @@
 #include <iostream>
 #include <switch.h>
-#include <httplib.hpp>
 #include "HTTPServer.hpp"
 #include "util.hpp"
+#include "RemoteLogging.hpp"
 
 #define TITLE_ID 0x410000000000FF15
+
+/**
+ * @brief Whether the build's target is APPLET or SYS-MODULE.
+*/
+#define APPLET 0
+
+/**
+ * @brief Whether nxlink should be enabled or not.
+*/
+#define NXLINK 0
+
+/**
+ * @brief Whether remote logging is enabled or not.
+ */
+#define REMOTE_LOGGING 1
 
 using namespace std;
 
@@ -13,7 +28,7 @@ Result initializationErrorCode = 0;
 bool debugResultCodes = false;
 
 #if !APPLET
-#define INNER_HEAP_SIZE 0x00C00000
+#define INNER_HEAP_SIZE 0x100000
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,6 +36,13 @@ extern "C" {
 
 void serviceInit(void);
 void serviceExit(void);
+
+/**
+ * @brief Does a minimal initialization of the socket module to spare on limited memory resources.
+ * 
+ * @return `socketInitialize` result code.
+ */
+int socketMinimalInit();
 
 // Sysmodules should not use applet*.
 u32 __nx_applet_type = AppletType_None;
@@ -43,7 +65,7 @@ void __appInit(void) {
     // Open a service manager session.
     rc = smInitialize();
     if (R_FAILED(rc))
-        diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
+        fatalThrow(MAKERESULT(Module_Libnx, LibnxError_InitFail_SM));
 
     // Retrieve the current version of Horizon OS.
     if (hosversionGet() == 0) {
@@ -60,7 +82,7 @@ void __appInit(void) {
     serviceInit();
 
     #if NXLINK
-    nxlinkStdioForDebug();
+    nxlinkStdio();
     svcSleepThread(2e+9);
     DEBUGMSG("[NXLINK] Session started!\n");
     #endif
@@ -77,12 +99,17 @@ void __appExit(void) {
 #endif
 
 void serviceInit(void) {
+    #if !APPLET
+    svcSleepThread(20e+9);
+    #endif
+
     Result rc;
 
     rc = pmdmntInitialize();
     if (R_FAILED(rc)) {
         erroredModuleName = "pmdmntInitialize";
         initializationErrorCode = rc;
+        fatalThrow(0x7000 + rc);
         return;
     }
         
@@ -90,13 +117,15 @@ void serviceInit(void) {
     if (R_FAILED(rc)) {
         erroredModuleName = "pminfoInitialize";
         initializationErrorCode = rc;
+        fatalThrow(0x8000 + rc);
         return;
     }
 
-    rc = socketInitializeDefault();
+    rc = socketMinimalInit();
     if (R_FAILED(rc)) {
         erroredModuleName = "socketInitializeDefault";
         initializationErrorCode = rc;
+        fatalThrow(0x9000 + rc);
         return;
     }
 
@@ -125,6 +154,28 @@ void serviceExit(void) {
     smExit();
 }
 
+// Custom socket initialization (thanks Antares, Behemoth and Pharynx from the ReSwitched team!)
+int socketMinimalInit() {
+    constexpr const SocketInitConfig sockConf = {
+        .bsdsockets_version = 1,
+
+        .tcp_tx_buf_size = 0x800,
+        .tcp_rx_buf_size = 0x800,
+        .tcp_tx_buf_max_size = 0x25000,
+        .tcp_rx_buf_max_size = 0x25000,
+
+        .udp_tx_buf_size = 0,
+        .udp_rx_buf_size = 0,
+
+        .sb_efficiency = 1,
+
+        .num_bsd_sessions = 0,
+        .bsd_service_type = BsdServiceType_Auto,
+    };
+
+    return socketInitialize(&sockConf);
+}
+
 // Main program entrypoint
 int main(int argc, char* argv[]) {
     #if APPLET
@@ -148,9 +199,32 @@ int main(int argc, char* argv[]) {
 
 	HTTPServer *server = new HTTPServer();
     bool testCheck = false;
+
+    bool connected = false;
+    int attempts = 0;
+
+    RemoteLogging *t = RemoteLogging::instance();
     
     // Main loop
     while (appletMainLoop()) {
+        if (!t->isConnected()) {
+            if (t->connect("192.168.2.20")) {
+                t->info("this is a test!\n");
+                #if APPLET
+                cout << "Connected to Python server!" << endl;
+                #endif
+            } else {
+                #if APPLET
+                consoleClear();
+                cout << "Could not connect to Python server, connection_status: " << to_string(connection_status) << ". Attempts: " << to_string(attempts) << endl;
+                #endif
+                svcSleepThread(2e+9);
+            }
+
+            if (attempts++ > 2)
+                fatalThrow(0x9999);
+        }
+
         #if APPLET
         if (!server->listening() && !server->isStarting() && !testCheck) {
             // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
@@ -158,11 +232,14 @@ int main(int argc, char* argv[]) {
             server->startAsync();
             testCheck = true;
         }
-        #else
+        #endif
+
         // If not in applet mode, and thus in "prod", start listening in blocking mode within the main loop:
         // this guarantees that when the NS goes in sleep mode, the server re-opens a listening socket.
-        server->start();
-        #endif
+        // if (testCheck == false && false) {
+        //     testCheck = true;
+        //     server->start();
+        // }
 
         #if APPLET
         // Scan the gamepad. This should be done once for each frame

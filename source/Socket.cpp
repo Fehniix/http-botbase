@@ -99,37 +99,32 @@ int TCPClient::make_connection()
     int err = connect(m_socket, reinterpret_cast<sockaddr*>(&m_addr), sizeof(m_addr));
     if (err < 0) {
         __log("Connection error");
-        return 0xFF1500 + err;
+        return err;
     }
     __log("connected");
 
     return 0;
 }
 
-int TCPClient::send_message(const std::string& message)
+int TCPClient::send_message(const std::string& message, bool waitForResponse = false)
 {
     char server_reply[2000];
     size_t length = message.length();
 
-    if (send(m_socket, message.c_str(), length, 0) < 0)
-    {
+    if (send(m_socket, message.c_str(), length, 0) < 0) {
         __log("Send failed");
         return message_send_err;
-    }
-    else
-    {
+    } else
         __log("Data sent");
-    }
 
-    if (recv(m_socket, server_reply, 2000, 0) == SOCKET_ERROR)
-    {
+    if (!waitForResponse)
+        return 0;
+
+    if (recv(m_socket, server_reply, 2000, 0) == SOCKET_ERROR) {
         __log("Receive Failed");
         return receive_err;
-    }
-    else
-    {
+    } else
         __log(server_reply);
-    }
 
     return 0;
 }

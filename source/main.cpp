@@ -9,7 +9,7 @@
 /**
  * @brief Whether the build's target is APPLET or SYS-MODULE.
 */
-#define APPLET 0
+#define APPLET 1
 
 /**
  * @brief Whether nxlink should be enabled or not.
@@ -27,6 +27,13 @@ string erroredModuleName;
 Result initializationErrorCode = 0;
 bool debugResultCodes = false;
 
+/**
+ * @brief Does a minimal initialization of the socket module to spare on limited memory resources.
+ * 
+ * @return `socketInitialize` result code.
+ */
+int socketMinimalInit();
+
 #if !APPLET
 #define INNER_HEAP_SIZE 0x100000
 
@@ -36,13 +43,6 @@ extern "C" {
 
 void serviceInit(void);
 void serviceExit(void);
-
-/**
- * @brief Does a minimal initialization of the socket module to spare on limited memory resources.
- * 
- * @return `socketInitialize` result code.
- */
-int socketMinimalInit();
 
 // Sysmodules should not use applet*.
 u32 __nx_applet_type = AppletType_None;
@@ -123,7 +123,7 @@ void serviceInit(void) {
 
     rc = socketMinimalInit();
     if (R_FAILED(rc)) {
-        erroredModuleName = "socketInitializeDefault";
+        erroredModuleName = "socketMinimalInit";
         initializationErrorCode = rc;
         fatalThrow(0x9000 + rc);
         return;
@@ -197,6 +197,8 @@ int main(int argc, char* argv[]) {
     cout << "Errored: " << ((initializationErrorCode != 0) ? erroredModuleName : "false") << ", code: " << initializationErrorCode << endl;
     #endif
 
+    cout << fmt::format("Hello from fmt, {}!\n", "world") << endl;
+
 	HTTPServer *server = new HTTPServer();
     bool testCheck = false;
 
@@ -208,21 +210,26 @@ int main(int argc, char* argv[]) {
     // Main loop
     while (appletMainLoop()) {
         if (!t->isConnected()) {
-            if (t->connect("192.168.2.20")) {
-                t->info("this is a test!\n");
+            // Should add auto-retry when connection drops? This needs a heartbeat mechanism, definitely way out of scope.
+            if (t->connect("192.168.2.20", -1, -1)) {
+                bool infoRes = t->info("this is a test!\n");
                 #if APPLET
                 cout << "Connected to Python server!" << endl;
                 #endif
             } else {
                 #if APPLET
                 consoleClear();
-                cout << "Could not connect to Python server, connection_status: " << to_string(connection_status) << ". Attempts: " << to_string(attempts) << endl;
+                cout << "Could not connect to Python server. Attempts: " << to_string(attempts) << endl;
                 #endif
                 svcSleepThread(2e+9);
             }
 
             if (attempts++ > 2)
+                #if APPLET
+                cout << "Could not connect to remote logging server after " << to_string(attempts) << endl;
+                #else
                 fatalThrow(0x9999);
+                #endif
         }
 
         #if APPLET

@@ -3,23 +3,9 @@
 #include "HTTPServer.hpp"
 #include "util.hpp"
 #include "RemoteLogging.hpp"
+#include "fmt/core.h"
 
 #define TITLE_ID 0x410000000000FF15
-
-/**
- * @brief Whether the build's target is APPLET or SYS-MODULE.
-*/
-#define APPLET 1
-
-/**
- * @brief Whether nxlink should be enabled or not.
-*/
-#define NXLINK 0
-
-/**
- * @brief Whether remote logging is enabled or not.
- */
-#define REMOTE_LOGGING 1
 
 using namespace std;
 
@@ -180,9 +166,7 @@ int socketMinimalInit() {
 int main(int argc, char* argv[]) {
     #if APPLET
     serviceInit();
-    #endif
 
-    #if APPLET
     PadState pad;
 
     consoleInit(NULL);
@@ -194,37 +178,38 @@ int main(int argc, char* argv[]) {
     padInitializeDefault(&pad);
 
     cout << "Press + to exit.\n" << endl;
-    cout << "Errored: " << ((initializationErrorCode != 0) ? erroredModuleName : "false") << ", code: " << initializationErrorCode << endl;
+    cout << ft("Errored: {}, code: {}\n", ((initializationErrorCode != 0) ? erroredModuleName : "false"), initializationErrorCode) << endl;
     #endif
 
-    cout << fmt::format("Hello from fmt, {}!\n", "world") << endl;
+    HTTPServer *server  = new HTTPServer();
+    RemoteLogging *rLog = RemoteLogging::instance();
+    string remoteLogIP  = "192.168.2.20";
 
-	HTTPServer *server = new HTTPServer();
     bool testCheck = false;
-
     bool connected = false;
-    int attempts = 0;
 
-    RemoteLogging *t = RemoteLogging::instance();
+    u8 rtlAttempts = 0;
+    u8 maxAttempts = 6;
+    u16 retryTimeout = 0;
     
     // Main loop
     while (appletMainLoop()) {
-        if (!t->isConnected()) {
-            if (t->connect("192.168.2.20")) {
-                bool infoRes = t->info("this is a test!\n");
+        if (!rLog->isConnected() && rtlAttempts < maxAttempts + 1) {
+            if (rLog->connect(remoteLogIP)) {
+                rLog->info("Connection established.\n");
                 #if APPLET
-                cout << "Connected to Python server!" << endl;
+                cout << "Connected to remote logging server." << endl;
                 #endif
             } else {
                 #if APPLET
-                cout << "Could not connect to Python server. Attempts: " << to_string(attempts) << endl;
+                cout << ft("Could not connect to Python server. Attempts: {}. Retrying.\n", rtlAttempts);
                 #endif
                 svcSleepThread(2e+9);
             }
 
-            if (attempts++ > 6)
+            if (++rtlAttempts == maxAttempts)
                 #if APPLET
-                cout << fmt::format("Could not connect to remote logging server after {} attempts.\n", attempts);
+                cout << ft("Could not connect to remote logging server after {} attempts.\n", rtlAttempts);
                 #else
                 fatalThrow(0x9999);
                 #endif
@@ -233,7 +218,8 @@ int main(int argc, char* argv[]) {
         #if APPLET
         if (!server->listening() && !server->isStarting() && !testCheck) {
             // The `isStarting()` check was implemented to not allow multiple threads to be created while the server is starting.
-            // This is NON-blocking! The server is started on a separate thread. 
+            // This is NON-blocking! The server is started on a separate thread.
+            RINFO("Starting HTTP server...\n");
             server->startAsync();
             testCheck = true;
         }

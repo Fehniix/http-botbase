@@ -2,6 +2,22 @@
 #include <stdio.h>
 #include <iostream>
 #include <iomanip>
+#include "fmt/core.h"
+
+/**
+ * @brief Whether the build's target is APPLET or SYS-MODULE.
+*/
+#define APPLET 1
+
+/**
+ * @brief Whether nxlink should be enabled or not.
+*/
+#define NXLINK 0
+
+/**
+ * @brief Whether remote logging is enabled or not.
+ */
+#define REMOTE_LOGGING 1
 
 /**
  * @brief Sends a message with variadic parameters to stderr, likely to be caught by nxlink. Must be '\\n'-terminated, or `fflush(stderr)` right after calling this.
@@ -10,6 +26,9 @@
 #define DEBUGMSG(msg) 			(fprintf(stderr, msg))
 #define RETURN_IF_FAIL(rc)		if (R_FAILED(rc)) return rc;
 #define RINFO(msg)				RemoteLogging::instance()->info(msg)
+#define RDEBUG(msg)				RemoteLogging::instance()->debug(msg)
+#define RERROR(msg)				RemoteLogging::instance()->error(msg)
+#define ft(msg, ...)			fmt::format(msg, __VA_ARGS__)
 
 #define MAX_LINE_LENGTH 344 * 32 * 2
 

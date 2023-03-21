@@ -7,6 +7,7 @@
 #include <iomanip>
 
 #include "HTTPServer.hpp"
+#include "RemoteLogging.hpp"
 #include "json.hpp"
 #include "commands.hpp"
 #include "util.hpp"
@@ -86,8 +87,8 @@ void HTTPServer::startAsync() {
 
 	this->starting = true;
 
-	#if NXLINK
-	DEBUGMSG("[SERVER] HTTPServer started!\n");
+	#if REMOTE_LOGGING
+	RINFO("[SERVER] HTTPServer started!\n");
 	#endif
 
 	flashLed();

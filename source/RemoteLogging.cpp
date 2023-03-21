@@ -51,10 +51,20 @@ const bool RemoteLogging::isConnected() const {
 }
 
 std::string RemoteLogging::now() const {
-	return fmt::format("{:%Y-%m-%d %H:%M:%S}", tm());
+	time_t unixTime = time(NULL);
+	struct tm* timeStruct = gmtime((const time_t *)&unixTime);
+
+	int hours = timeStruct->tm_hour;
+	int minutes = timeStruct->tm_min;
+	int seconds = timeStruct->tm_sec;
+	int day = timeStruct->tm_mday;
+	int month = timeStruct->tm_mon;
+	int year = timeStruct->tm_year +1900;
+
+	return fmt::format("{}/{}/{} {}:{}:{}", year, month + 1, day, hours, minutes, seconds);
 }
 
 const bool RemoteLogging::sendLog(const std::string& msg, const std::string& level) {
-	std::string formatted = fmt::format("[%s] [%s] %s\n", level, this->now(), msg);
-	return this->client.send_message(formatted) == 0;
+	std::string formatted = fmt::format("[{}] [{}] {}\n", level, this->now(), msg);
+	return this->client.send_message(formatted, false) == 0;
 }

@@ -210,23 +210,21 @@ int main(int argc, char* argv[]) {
     // Main loop
     while (appletMainLoop()) {
         if (!t->isConnected()) {
-            // Should add auto-retry when connection drops? This needs a heartbeat mechanism, definitely way out of scope.
-            if (t->connect("192.168.2.20", -1, -1)) {
+            if (t->connect("192.168.2.20")) {
                 bool infoRes = t->info("this is a test!\n");
                 #if APPLET
                 cout << "Connected to Python server!" << endl;
                 #endif
             } else {
                 #if APPLET
-                consoleClear();
                 cout << "Could not connect to Python server. Attempts: " << to_string(attempts) << endl;
                 #endif
                 svcSleepThread(2e+9);
             }
 
-            if (attempts++ > 2)
+            if (attempts++ > 6)
                 #if APPLET
-                cout << "Could not connect to remote logging server after " << to_string(attempts) << endl;
+                cout << fmt::format("Could not connect to remote logging server after {} attempts.\n", attempts);
                 #else
                 fatalThrow(0x9999);
                 #endif

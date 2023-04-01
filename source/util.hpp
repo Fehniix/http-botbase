@@ -7,7 +7,7 @@
 /**
  * @brief Whether the build's target is APPLET or SYS-MODULE.
 */
-#define APPLET 1
+#define APPLET 0
 
 /**
  * @brief Whether nxlink should be enabled or not.

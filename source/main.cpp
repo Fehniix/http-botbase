@@ -3,6 +3,7 @@
 #include "HTTPServer.hpp"
 #include "util.hpp"
 #include "RemoteLogging.hpp"
+#include "EventManager.hpp"
 #include "fmt/core.h"
 
 #define TITLE_ID 0x410000000000FF15
@@ -135,6 +136,7 @@ void serviceExit(void) {
     pmdmntExit();
     pminfoExit();
     socketExit();
+    pscmExit();
     // capsscExit();
     // viExit();
     smExit();
@@ -181,6 +183,8 @@ int main(int argc, char* argv[]) {
     cout << ft("Errored: {}, code: {}\n", ((initializationErrorCode != 0) ? erroredModuleName : "false"), initializationErrorCode) << endl;
     #endif
 
+    EventManager *instance = EventManager::instance();
+
     HTTPServer *server  = new HTTPServer();
     RemoteLogging *rLog = RemoteLogging::instance();
     string remoteLogIP  = "192.168.2.20";
@@ -201,18 +205,18 @@ int main(int argc, char* argv[]) {
                 cout << "Connected to remote logging server." << endl;
                 #endif
             } else {
+                if (++rtlAttempts == maxAttempts)
+                    #if APPLET
+                    cout << ft("Could not connect to remote logging server after {} attempts.\n", rtlAttempts);
+                    #else
+                    fatalThrow(0x9999);
+                    #endif
+
                 #if APPLET
                 cout << ft("Could not connect to Python server. Attempts: {}. Retrying.\n", rtlAttempts);
                 #endif
                 svcSleepThread(2e+9);
             }
-
-            if (++rtlAttempts == maxAttempts)
-                #if APPLET
-                cout << ft("Could not connect to remote logging server after {} attempts.\n", rtlAttempts);
-                #else
-                fatalThrow(0x9999);
-                #endif
         }
 
         #if APPLET
@@ -223,14 +227,14 @@ int main(int argc, char* argv[]) {
             server->startAsync();
             testCheck = true;
         }
-        #endif
-
+        #else
         // If not in applet mode, and thus in "prod", start listening in blocking mode within the main loop:
         // this guarantees that when the NS goes in sleep mode, the server re-opens a listening socket.
         // if (testCheck == false && false) {
         //     testCheck = true;
-        //     server->start();
+        server->start();
         // }
+        #endif
 
         #if APPLET
         // Scan the gamepad. This should be done once for each frame

@@ -16,6 +16,8 @@ function unmount () {
 	fi
 }
 
+make
+
 if [ ! -d "/Volumes/SWITCH SD/atmosphere/contents/410000000000FF15/" ]
 then
 	echo "Previous build on Switch FS not found. Copying over."
@@ -23,8 +25,6 @@ then
 	unmount
 	exit
 fi
-
-make
 
 rm -r "/Volumes/SWITCH SD/atmosphere/contents/410000000000FF15/"
 echo "Previous build removed from Switch FS"

@@ -1,21 +1,23 @@
 {
+    "env": {
+        "devkitpro": "/opt/devkitpro",
+      },
     "configurations": [
         {
             "name": "DKP aarch64",
             "includePath": [
-                "${env:DEVKITPRO}/devkitA64/aarch64-none-elf/include/**",
-                "${env:DEVKITPRO}/devkitA64/lib/gcc/aarch64-none-elf/12.1.0/include/**",
-                "${env:DEVKITPRO}/libnx/include/**",
+                "${devkitpro}/devkitA64/aarch64-none-elf/include/**",
+                "${devkitpro}/devkitA64/lib/gcc/aarch64-none-elf/12.1.0/include/**",
+                "${devkitpro}/libnx/include/**",
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/include/**",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include/**"
             ],
             "defines": [
                 "SWITCH",
                 "__SWITCH__",
                 "DEBUG"
             ],
-            "compilerPath": "${env:DEVKITPRO}/devkitA64/bin/aarch64-none-elf-g++",
+            "compilerPath": "${devkitpro}/devkitA64/bin/aarch64-none-elf-g++",
             "cStandard": "c11",
             "cppStandard": "gnu++23",
             "intelliSenseMode": "gcc-arm64"

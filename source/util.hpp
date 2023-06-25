@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include "fmt/core.h"
+#include "Ston.hpp"
 
 /**
  * @brief Whether the build's target is APPLET or SYS-MODULE.
@@ -25,9 +26,9 @@
 #define VDEBUGMSG(msg, ...) 	(fprintf(stderr, msg, __VA_ARGS__))
 #define DEBUGMSG(msg) 			(fprintf(stderr, msg))
 #define RETURN_IF_FAIL(rc)		if (R_FAILED(rc)) return rc;
-#define RINFO(msg)				RemoteLogging::instance()->info(msg)
-#define RDEBUG(msg)				RemoteLogging::instance()->debug(msg)
-#define RERROR(msg)				RemoteLogging::instance()->error(msg)
+#define RINFO(msg)				Ston::instance()->getRemoteLogging()->info(msg)
+#define RDEBUG(msg)				Ston::instance()->getRemoteLogging()->debug(msg)
+#define RERROR(msg)				Ston::instance()->getRemoteLogging()->error(msg)
 #define ft(msg, ...)			fmt::format(msg, __VA_ARGS__)
 
 #define MAX_LINE_LENGTH 344 * 32 * 2

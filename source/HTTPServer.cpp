@@ -32,17 +32,159 @@ string makeResponse(bool isError, const string& message, const optional<json> pa
 	return response.dump();
 }
 
-bool HTTPServer::starting;
+HTTPServer::HTTPServer() {}
+HTTPServer::~HTTPServer() {}
 
-HTTPServer::HTTPServer() {
-	this->starting = false;
+void HTTPServer::startSync() {
+	std::string error;
 
-	this->serverInstance.Get("/ping", [this](const Request& req, Response& res) { this->get_ping(req, res); });
-	this->serverInstance.Get("/peek", [this](const Request& req, Response& res) { this->get_peek(req, res); });
-	this->serverInstance.Get("/poke", [this](const Request& req, Response& res) { this->get_poke(req, res); });
-	this->serverInstance.Get("/mainNsoBase", [this](const Request& req, Response& res) { this->get_mainNsoBase(req, res); });
-	this->serverInstance.Get("/heapBase", [this](const Request& req, Response& res) { this->get_heapBase(req, res); });
-	this->serverInstance.Get("/meta", [this](const Request& req, Response& res) { this->get_meta(req, res); });
+	this->gameManager = new GameManager();
+	this->debugger = new Debugger();
+	this->debugger->initialize(error);
+
+	this->initialize();
+
+	#if NXLINK
+	DEBUGMSG("[SERVER] HTTPServer started!\n");
+	#endif
+
+	flashLed();
+
+	this->serverInstance->listen("0.0.0.0", 9001);
+}
+
+void HTTPServer::stopSync() {
+	this->serverInstance->stop();
+
+	delete this->debugger;
+}
+
+void HTTPServer::startAsync(bool retry, int maxAttempts) {
+	RINFO("[HTTPServer] HTTPServer async started.");
+	RINFO(ft("(1.) Listening: {}", this->listening()));
+
+	this->initialize();
+
+	flashLed();
+
+	if (retry) {
+		RINFO("[HTTPServer] Retry: true, registering event listeners.");
+
+		this->retryThreadActive = true;
+
+		EventManager* em = Ston::instance()->getEventManager();
+		this->eventListeners[0] = em->addEventListener(PscPmState_ReadySleep, std::bind(&HTTPServer::consoleGoingToSleepHandler, this));
+		this->eventListeners[1] = em->addEventListener(PscPmState_Awake, std::bind(&HTTPServer::consoleWokeUpHandler, this));
+	}
+
+	threadCreate(&this->serverThread, HTTPServer::connectRetryThreadFunction, (void*)this, NULL, 0x10000, 0x2C, -2);
+	threadStart(&this->serverThread);
+}
+
+void HTTPServer::stopAsync() {
+	RINFO("[HTTPServer] Stopping server.");
+
+	this->retryThreadActive = false;
+	this->serverInstance->stop();
+
+	delete this->debugger;
+
+	threadWaitForExit(&this->serverThread);
+	threadClose(&this->serverThread);
+
+	EventManager* em = Ston::instance()->getEventManager();
+	em->removeEventListener(PscPmState_ReadySleep, this->eventListeners[0]);
+	em->removeEventListener(PscPmState_Awake, this->eventListeners[1]);
+}
+
+void HTTPServer::connectRetryThreadFunction(void* arg) {
+	HTTPServer* _this = (HTTPServer*)arg;
+	int connAttempts = 0;
+
+	// _this->initialize();
+
+	while (true) {
+		if (_this->listening() || connAttempts >= _this->maxAttempts || !_this->retryThreadActive) {
+			RINFO(ft("[HTTPServer] Listening: {}, attempts: {}, retryThreadActive: {}", _this->listening(), connAttempts, _this->retryThreadActive));
+			svcSleepThread(4e+9);
+			continue;
+		}
+
+		RINFO("[HTTPServer] Attempting to listen on port 9001.");
+
+		// This call is blocking; no need to handle the case in which connection was successful 
+		// because this call does not yield.
+		if (!_this->serverInstance->listen("0.0.0.0", 9001)) {
+			RINFO("[HTTPServer] Could not listen on port 9001.");
+			#if APPLET
+			std::cout << ft("[HTTPServer] Attempt #{} to listen on port 9001 failed.", connAttempts) << std::endl;
+
+			if (++connAttempts == _this->maxAttempts)
+				std::cout << ft("[HTTPServer] Could not listen on port 9001 after {} attempts.", connAttempts) << std::endl;
+			#else
+			if (++connAttempts == _this->maxAttempts)
+				fatalThrow(0x8888);
+			#endif
+		}
+
+		svcSleepThread(2e+9);
+	}
+}
+
+void HTTPServer::consoleWokeUpHandler() {
+	if (!this->retryThreadActive) return;
+
+	threadResume(&this->serverThread);
+}
+
+void HTTPServer::consoleGoingToSleepHandler() {
+	this->serverInstance->stop();
+
+	delete this->debugger;
+	delete this->serverInstance;
+	delete this->gameManager;
+
+	threadPause(&this->serverThread);
+}
+
+bool HTTPServer::listening() {
+	if (this->serverInstance == nullptr)
+		return false;
+
+	return this->serverInstance->is_running();
+}
+
+void HTTPServer::get_ping(const Request&, Response& res) {
+	res.set_content("Hello World!", "text/plain");
+}
+
+void HTTPServer::initialize() {
+	RINFO(ft("Listening: {}", this->listening()));
+
+	if (this->debugger == nullptr) {
+		std::string error;
+		this->debugger = new Debugger();
+		this->debugger->initialize(error);
+	}
+
+	if (this->gameManager == nullptr)
+		this->gameManager = new GameManager();
+
+	if (this->serverInstance == nullptr) {
+		this->serverInstance = new Server();
+		this->registerRoutes();
+	}
+
+	RINFO(ft("Listening: {}", this->listening()));
+}
+
+void HTTPServer::registerRoutes() {
+	this->serverInstance->Get("/ping", [this](const Request& req, Response& res) { this->get_ping(req, res); });
+	this->serverInstance->Get("/peek", [this](const Request& req, Response& res) { this->get_peek(req, res); });
+	this->serverInstance->Get("/poke", [this](const Request& req, Response& res) { this->get_poke(req, res); });
+	this->serverInstance->Get("/mainNsoBase", [this](const Request& req, Response& res) { this->get_mainNsoBase(req, res); });
+	this->serverInstance->Get("/heapBase", [this](const Request& req, Response& res) { this->get_heapBase(req, res); });
+	this->serverInstance->Get("/meta", [this](const Request& req, Response& res) { this->get_meta(req, res); });
 
 	#if APPLET
 	std::cout << "All routes were registered, debugger started." << std::endl;
@@ -51,78 +193,6 @@ HTTPServer::HTTPServer() {
 	#if NXLINK
 	DEBUGMSG("[SERVER] All routes were registered, debugger started.\n");
 	#endif
-}
-
-HTTPServer::~HTTPServer() {}
-
-void HTTPServer::start() {
-	std::string error;
-
-	this->gameManager = new GameManager();
-	this->debugger = new Debugger();
-	this->debugger->initialize(error);
-
-	#if NXLINK
-	DEBUGMSG("[SERVER] HTTPServer started!\n");
-	#endif
-
-	flashLed();
-
-	HTTPServer::starting = false;
-	this->serverInstance.listen("0.0.0.0", 9001);
-}
-
-void HTTPServer::stop() {
-	this->serverInstance.stop();
-
-	delete this->debugger;
-}
-
-void HTTPServer::startAsync() {
-	std::string error;
-
-	this->gameManager = new GameManager();
-	this->debugger = new Debugger();
-	this->debugger->initialize(error);
-
-	this->starting = true;
-
-	#if REMOTE_LOGGING
-	RINFO("[SERVER] HTTPServer started!\n");
-	#endif
-
-	flashLed();
-
-	threadCreate(&this->serverThread, HTTPServer::serverThreadFunction, (void*)&this->serverInstance, NULL, 0x10000, 0x2C, -2);
-	threadStart(&this->serverThread);
-}
-
-void HTTPServer::stopAsync() {
-	this->serverInstance.stop();
-
-	delete this->debugger;
-
-	threadWaitForExit(&this->serverThread);
-	threadClose(&this->serverThread);
-}
-
-void HTTPServer::serverThreadFunction(void* arg) {
-	HTTPServer::starting = false;
-
-	Server* serverRef = (Server*)arg;
-	serverRef->listen("0.0.0.0", 9001);
-}
-
-bool HTTPServer::listening() {
-	return this->serverInstance.is_running();
-}
-
-bool HTTPServer::isStarting() {
-	return this->starting;
-}
-
-void HTTPServer::get_ping(const Request&, Response& res) {
-	res.set_content("Hello World!", "text/plain");
 }
 
 void HTTPServer::get_peek(const Request& req, Response &res) {

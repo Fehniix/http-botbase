@@ -5,6 +5,7 @@
 #include "RemoteLogging.hpp"
 #include "EventManager.hpp"
 #include "fmt/core.h"
+#include "Ston.hpp"
 
 #define TITLE_ID 0x410000000000FF15
 
@@ -67,12 +68,6 @@ void __appInit(void) {
     }
 
     serviceInit();
-
-    #if NXLINK
-    nxlinkStdio();
-    svcSleepThread(2e+9);
-    DEBUGMSG("[NXLINK] Session started!\n");
-    #endif
 }
 
 // Service deinitialization.
@@ -113,6 +108,30 @@ void serviceInit(void) {
         erroredModuleName = "socketMinimalInit";
         initializationErrorCode = rc;
         fatalThrow(0x9000 + rc);
+        return;
+    }
+
+    rc = pscmInitialize();
+    if (R_FAILED(rc)) {
+        erroredModuleName = "pscmInitialize";
+        initializationErrorCode = rc;
+        fatalThrow(0xA000 + rc);
+        return;
+    }
+
+    rc = fsInitialize();
+    if (R_FAILED(rc)) {
+        erroredModuleName = "fsInitialize";
+        initializationErrorCode = rc;
+        fatalThrow(0xB000 + rc);
+        return;
+    }
+
+    rc = fsdevMountSdmc();
+    if (R_FAILED(rc)) {
+        erroredModuleName = "fsdevMountSdmc";
+        initializationErrorCode = rc;
+        fatalThrow(0xC000 + rc);
         return;
     }
 
@@ -164,6 +183,22 @@ int socketMinimalInit() {
     return socketInitialize(&sockConf);
 }
 
+void logToFile(const std::string &log) {
+    FILE* logFile = fopen("/config/RemoteLogging/log.txt", "a");
+    fprintf(logFile, log.c_str());
+    fclose(logFile);
+}
+
+void deleteLogFile() {
+    FsFileSystem *fs = fsdevGetDeviceFileSystem("sdmc");
+    fsFsDeleteFile(fs, "/config/RemoteLogging/log.txt");
+}
+
+u8 rtlAttempts = 0;
+u8 maxAttempts = 6;
+RemoteLogging *rLog;
+Mutex logMutex;
+
 // Main program entrypoint
 int main(int argc, char* argv[]) {
     #if APPLET
@@ -183,41 +218,19 @@ int main(int argc, char* argv[]) {
     cout << ft("Errored: {}, code: {}\n", ((initializationErrorCode != 0) ? erroredModuleName : "false"), initializationErrorCode) << endl;
     #endif
 
-    EventManager *instance = EventManager::instance();
+    Ston::instance()->getEventManager()->initialize();
+    mutexInit(&logMutex);
 
-    HTTPServer *server  = new HTTPServer();
-    RemoteLogging *rLog = RemoteLogging::instance();
-    string remoteLogIP  = "192.168.2.20";
+    string remoteLogIP = "192.168.2.20";
+    rLog = Ston::instance()->getRemoteLogging();
+    rLog->connect(remoteLogIP, REMOTE_PORT, true, 10, 2500);
 
-    bool testCheck = false;
-    bool connected = false;
-
-    u8 rtlAttempts = 0;
-    u8 maxAttempts = 6;
-    u16 retryTimeout = 0;
+    HTTPServer *server = new HTTPServer();
+    server->startAsync(true, 10);
     
     // Main loop
     while (appletMainLoop()) {
-        if (!rLog->isConnected() && rtlAttempts < maxAttempts + 1) {
-            if (rLog->connect(remoteLogIP)) {
-                rLog->info("Connection established.\n");
-                #if APPLET
-                cout << "Connected to remote logging server." << endl;
-                #endif
-            } else {
-                if (++rtlAttempts == maxAttempts)
-                    #if APPLET
-                    cout << ft("Could not connect to remote logging server after {} attempts.\n", rtlAttempts);
-                    #else
-                    fatalThrow(0x9999);
-                    #endif
-
-                #if APPLET
-                cout << ft("Could not connect to Python server. Attempts: {}. Retrying.\n", rtlAttempts);
-                #endif
-                svcSleepThread(2e+9);
-            }
-        }
+        // logToFile(fmt::format("#appletMainLoop - rtlAttempts={}, RemoteLogging_connected={}\n", rtlAttempts, rLog->isConnected()));
 
         #if APPLET
         if (!server->listening() && !server->isStarting() && !testCheck) {
@@ -232,7 +245,7 @@ int main(int argc, char* argv[]) {
         // this guarantees that when the NS goes in sleep mode, the server re-opens a listening socket.
         // if (testCheck == false && false) {
         //     testCheck = true;
-        server->start();
+        // server->start();
         // }
         #endif
 
@@ -259,7 +272,7 @@ int main(int argc, char* argv[]) {
     cout << "Exiting..." << endl;
     #endif
 
-    server->stop();
+    // server->stopSync();
 
 	#if APPLET
     consoleUpdate(NULL);

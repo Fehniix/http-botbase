@@ -69,6 +69,8 @@ class TCPClient : public Socket
 public:
     TCPClient(u_short port = 8000, const std::string& ip_address = "127.0.0.1");
     int make_connection();
+    int close_connection();
+    int shutdown_socket(); 
     int send_message(const std::string& message, bool waitForResponse);
 };
 

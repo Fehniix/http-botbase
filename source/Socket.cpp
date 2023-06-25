@@ -106,6 +106,16 @@ int TCPClient::make_connection()
     return 0;
 }
 
+int TCPClient::close_connection() {
+    __log("Closing connection...");
+    return close(m_socket);
+}
+
+int TCPClient::shutdown_socket() {
+    __log("Shutting down...");
+    return shutdown(m_socket, 2); // shutdown_read_write
+}
+
 int TCPClient::send_message(const std::string& message, bool waitForResponse = false)
 {
     char server_reply[2000];
